@@ -6,7 +6,7 @@
 	<content><![CDATA[
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="${packageName}.${moduleName}.dao<#if subModuleName != "">.${subModuleName}</#if>.${ClassName}Dao">
+<mapper namespace="${packageName}.${moduleName}<#if subModuleName != "">.${subModuleName}</#if>.dao.${ClassName}Dao">
     
     <#-- 输出字段列 -->
 	<sql id="${className}Columns">
@@ -48,7 +48,7 @@ ${columnField?substring(0, columnField?last_index_of(","))}
 		<#-- 关联系统表 -->
 		<#list table.columnList as c>
 			<#if c.showType?? && c.showType == "userselect">
-		LEFT JOIN sys_user u${c_index + 1} ON u${c_index + 1}.id = a.${c.name}
+		LEFT JOIN biz_user u${c_index + 1} ON u${c_index + 1}.id = a.${c.name}
 			<#elseif c.showType?? && c.showType == "officeselect">
 		LEFT JOIN sys_office o${c_index + 1} ON o${c_index + 1}.id = a.${c.name}
 			<#elseif c.showType?? && c.showType == "areaselect">
@@ -146,41 +146,52 @@ ${columnField?substring(0, columnField?last_index_of(","))}
 			</otherwise>
 		</choose>
 	</select>
-	
 	<insert id="insert">
-		INSERT INTO ${table.name}(
+		INSERT INTO ${table.name}
+		 <trim prefix="(" suffix=")" suffixOverrides="," >
 		<#assign insertField>
 			<#list table.columnList as c>
 				<#if c.isInsert?? && c.isInsert == "1">
-			${c.name},
+				<if test="${c.javaFieldId} != null">
+					${c.name},
+				</if>
 				</#if>
 			</#list>
 		</#assign>
-${insertField?substring(0, insertField?last_index_of(","))}
-		) VALUES (
+ 	${insertField?substring(0, insertField?last_index_of(">"))}>
+		 </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
 		<#assign insertJavaField>
 			<#list table.columnList as c>
 				<#if c.isInsert?? && c.isInsert == "1">
-			${"#"}{${c.javaFieldId}},
+				<if test="${c.javaFieldId} != null">
+					${"#"}{${c.javaFieldId}},
+				</if>
 				</#if>
 			</#list>
 		</#assign>
-${insertJavaField?substring(0, insertJavaField?last_index_of(","))}
-		)
+	${insertJavaField?substring(0, insertJavaField?last_index_of(">"))}>
+		 </trim>
 	</insert>
+
 	
 	<update id="update">
-		UPDATE ${table.name} SET 	
+		UPDATE ${table.name} 
+		 <set>
 			<#assign updateField>		
 				<#list table.columnList as c>
-					<#if c.isEdit?? && c.isEdit == "1">
-			${c.name} = ${"#"}{${c.javaFieldId}},
-					</#if>
+			<#if c.isEdit?? && c.isEdit == "1">
+			<if test="${c.javaFieldId} != null">
+				${c.name} = ${"#"}{${c.javaFieldId}},
+			</if>
+			</#if>
 				</#list>
 			</#assign>
-${updateField?substring(0, updateField?last_index_of(","))}
+	 ${updateField?substring(0, updateField?last_index_of(">"))}>
+ 		</set>
 		WHERE id = ${"#"}{id}
 	</update>
+	
 	
 	<update id="delete">
 	<#if table.delFlagExists>
